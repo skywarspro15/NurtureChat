@@ -13,6 +13,8 @@ theme.setTheme("Nurtura", "light");
 let wrapper = Html.qs(".wrapper");
 wrapper.clear();
 
+let menu;
+
 const coreFunctions = {
   alert: (text) => {
     let dialog = new Html("md-dialog")
@@ -39,11 +41,14 @@ const coreFunctions = {
       })
       .appendTo("body");
   },
+  openChat: (id) => {
+    menu.popup("chat");
+  },
 };
 
 // debug
 window.coreFunctions = coreFunctions;
 
-let menu = new Menu(wrapper, coreFunctions);
+menu = new Menu(wrapper, coreFunctions);
 
 menu.goto("main");

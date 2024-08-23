@@ -161,7 +161,10 @@ const menu = {
       let listItem = new Html("md-list-item")
         .attr({ type: "button" })
         .html(`${item.name}`)
-        .appendTo(list);
+        .appendTo(list)
+        .on("click", () => {
+          core.openChat();
+        });
       new Html("img")
         .attr({ slot: "start", src: item.image })
         .styleJs({ width: "56px", borderRadius: "50%" })
@@ -182,6 +185,9 @@ const menu = {
       .on("click", () => {
         core.alert("Not implemented");
       });
+  },
+  end: () => {
+    console.log("UI killed me!!!");
   },
 };
 
