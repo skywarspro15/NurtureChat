@@ -2,18 +2,48 @@ import "@material/web/all.js";
 import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";
 
 document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
-let theming = await import("./libs/theming.js");
-theming = theming.default;
+let theme = await import("./libs/theming.js");
+theme = theme.default;
 
 import Menu from "./libs/menus.js";
 import Html from "./libs/html.js";
 
-theming.setTheme("Nurtura", "dark");
+theme.setTheme("Nurtura", "light");
 
 let wrapper = Html.qs(".wrapper");
 wrapper.clear();
 
-let menu = new Menu(wrapper);
+const coreFunctions = {
+  alert: (text) => {
+    let dialog = new Html("md-dialog")
+      .attr({ open: true })
+      .appendMany(
+        new Html("div").attr({ slot: "headline" }).text("Alert"),
+        new Html("form")
+          .attr({
+            slot: "content",
+            id: "form-id",
+            method: "dialog",
+          })
+          .text(text),
+        new Html("div")
+          .attr({ slot: "actions" })
+          .append(
+            new Html("md-text-button").attr({ form: "form-id" }).html("OK")
+          )
+      )
+      .on("close", () => {
+        setTimeout(() => {
+          dialog.cleanup();
+        }, 800);
+      })
+      .appendTo("body");
+  },
+};
 
-menu.open("main");
-console.log(theming);
+// debug
+window.coreFunctions = coreFunctions;
+
+let menu = new Menu(wrapper, coreFunctions);
+
+menu.goto("main");
