@@ -3,6 +3,10 @@
   font-family: "Roboto", system-ui, sans-serif;
 }
 
+body {
+  background: var(--md-sys-color-surface);
+}
+
 .wrapper {
   position: absolute;
   top: 0;

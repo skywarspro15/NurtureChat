@@ -5,14 +5,20 @@ class Menu {
     this.wrapper = wrapper;
     this.Html = Html;
     this.coreFuncs = functions;
+    this.currentPage = null;
   }
   async goto(name) {
+    if (this.currentPage) {
+      this.currentPage.end();
+    }
+    this.wrapper.clear();
     const menuFuncs = {
       title: (title) => {
         document.title = title;
       },
     };
     const page = await import(`../menus/${name}.js`);
+    this.currentPage = page.default;
     document.title = page.default.title;
     page.default.contents(this.wrapper, this.Html, this.coreFuncs, menuFuncs);
   }

@@ -60,6 +60,9 @@ const coreFunctions = {
   openChat: (id) => {
     menu.popup("chat");
   },
+  splashFinished: () => {
+    menu.goto("main");
+  },
 };
 
 // debug
@@ -67,4 +70,4 @@ window.coreFunctions = coreFunctions;
 
 menu = new Menu(wrapper, coreFunctions);
 
-menu.goto("main");
+menu.goto("splash");
