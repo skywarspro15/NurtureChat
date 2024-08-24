@@ -27,7 +27,7 @@ const menu = {
 
     new Html("p")
       .class("md-typescale-headline-medium")
-      .text("Nurturing stories.")
+      .text("Nurturing stories, nurturing personalities.")
       .appendTo(container)
       .styleJs({
         color: "var(--md-sys-color-inverse-surface)",

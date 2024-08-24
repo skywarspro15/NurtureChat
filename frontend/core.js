@@ -10,6 +10,22 @@ import Html from "./libs/html.js";
 
 theme.setTheme("Nurtura", "light");
 
+// dark mode support
+// if (
+//   window.matchMedia &&
+//   window.matchMedia("(prefers-color-scheme: dark)").matches
+// ) {
+//   theme.setTheme("Nurtura", "dark");
+// } else {
+//   theme.setTheme("Nurtura", "light");
+// }
+// window
+//   .matchMedia("(prefers-color-scheme: dark)")
+//   .addEventListener("change", (e) => {
+//     const newColorScheme = e.matches ? "dark" : "light";
+//     theme.setTheme("Nurtura", newColorScheme);
+//   });
+
 let wrapper = Html.qs(".wrapper");
 wrapper.clear();
 

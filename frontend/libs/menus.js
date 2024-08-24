@@ -7,9 +7,14 @@ class Menu {
     this.coreFuncs = functions;
   }
   async goto(name) {
+    const menuFuncs = {
+      title: (title) => {
+        document.title = title;
+      },
+    };
     const page = await import(`../menus/${name}.js`);
-    page.default.contents(this.wrapper, this.Html, this.coreFuncs);
     document.title = page.default.title;
+    page.default.contents(this.wrapper, this.Html, this.coreFuncs, menuFuncs);
   }
   async popup(name) {
     let popupContainer = new Html("div").id("#popupMenu").styleJs({
@@ -68,9 +73,14 @@ class Menu {
       easing: "cubicBezier(0.19,1,0.22,1)",
     });
     setTimeout(async () => {
+      const menuFuncs = {
+        title: (title) => {
+          headerText.text(title);
+        },
+      };
       const page = await import(`../menus/${name}.js`);
-      page.default.contents(popupContent, this.Html, this.coreFuncs);
       headerText.text(page.default.title);
+      page.default.contents(popupContent, this.Html, this.coreFuncs, menuFuncs);
       headerButton.on("click", () => {
         anime({
           targets: popupContainer.elm,
