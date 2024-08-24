@@ -67,6 +67,7 @@ app.post("/signup", (req, res) => {
     users[username] = {
       auth: hash,
       public: {
+        created: new Date().toISOString(),
         display_name: username,
         username: username,
       },
