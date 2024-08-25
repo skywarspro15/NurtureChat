@@ -54,8 +54,12 @@ class ChatSession {
   }
 
   async send(message) {
-    let result = await this.session.sendMessage(message);
-    return result.response.text();
+    try {
+      let result = await this.session.sendMessage(message);
+      return { error: false, message: result.response.text() };
+    } catch (e) {
+      return { error: true, message: e };
+    }
   }
 
   setContext(context) {

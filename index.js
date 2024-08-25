@@ -36,6 +36,25 @@ if (!fs.existsSync("users.json")) {
   users = JSON.parse(fs.readFileSync("users.json"));
 }
 
+fs.stat("conversations/", (err, stats) => {
+  if (err || !stats.isDirectory()) {
+    fs.mkdirSync("conversations/");
+  }
+});
+
+function makeId(length) {
+  let result = "";
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
 const provider = new ai.Provider({
   apiKey: process.env.API_KEY,
   generationConfig: {
@@ -91,6 +110,7 @@ app.post("/signup", (req, res) => {
   bcrypt.hash(password, 10, (err, hash) => {
     users[username] = {
       auth: hash,
+      conversations: [],
       public: {
         created: new Date().toISOString(),
         display_name: username,
@@ -157,7 +177,87 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  socket.emit("hi", socket.handshake.auth.name);
+  if (socket.handshake.auth.name == undefined) {
+    socket.disconnect(true);
+    return;
+  }
+  socket.emit("conversations", users[socket.handshake.auth.name].conversations);
+  socket.on("createConversation", (data) => {
+    let characterId = parseInt(data);
+    let userName = socket.handshake.auth.name;
+    console.log(characterId);
+    console.log(characters[characterId]);
+    if (characterId < 0 || characterId > characters.length - 1) {
+      socket.emit("creationError", "Character ID out of bounds");
+      return;
+    }
+    let convId = `${makeId(5)}-${makeId(5)}-${makeId(5)}`;
+    let conversationData = {
+      character: characters[characterId],
+      started: new Date().toISOString(),
+      messages: [],
+    };
+    fs.writeFileSync(
+      `conversations/${convId}.json`,
+      JSON.stringify(conversationData, null, 2)
+    );
+    users[userName].conversations.push(convId);
+    fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+    socket.emit("creationSuccess");
+  });
+  socket.on("joinConversation", (conversationId) => {
+    let convoData = JSON.parse(
+      fs.readFileSync(`conversations/${conversationId}.json`)
+    );
+    console.log(convoData);
+    socket.conversation = new ai.ChatSession(
+      provider,
+      convoData.character.prompt
+    );
+    socket.conversation.setContext(convoData.messages);
+    socket.conversationId = conversationId;
+    socket.emit("conversationData", convoData.messages);
+  });
+  socket.on("send", async (msg) => {
+    let convoData = JSON.parse(
+      fs.readFileSync(`conversations/${socket.conversationId}.json`)
+    );
+    if (!socket.conversation) {
+      socket.emit("sendError", "You're not in a conversation yet!");
+      return;
+    }
+    let msgResponse = await socket.conversation.send(msg);
+    console.log("msg response");
+    console.log(msgResponse);
+    if (msgResponse.error) {
+      socket.emit("sendError", msgResponse.message);
+      socket.conversation.setContext(convoData.messages);
+      return;
+    }
+    let curContext = socket.conversation.getContext();
+    convoData.messages = curContext;
+    fs.writeFileSync(
+      `conversations/${socket.conversationId}.json`,
+      JSON.stringify(convoData, null, 2)
+    );
+    socket.emit("msg", msgResponse.message);
+  });
+  socket.on("updateContext", (context) => {
+    socket.conversation.setContext(context);
+    socket.emit("contextUpdated");
+  });
+  socket.on("disconnect", () => {
+    if (socket.conversation) {
+      socket.conversationId = null;
+      socket.conversation.destroy();
+    }
+  });
+  socket.on("endConvo", () => {
+    if (socket.conversation) {
+      socket.conversationId = null;
+      socket.conversation.destroy();
+    }
+  });
 });
 
 server.listen(port, () => {
