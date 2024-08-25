@@ -7,6 +7,7 @@ theme = theme.default;
 
 import Menu from "./libs/menus.js";
 import Html from "./libs/html.js";
+import Auth from "./libs/auth.js";
 
 theme.setTheme("Nurtura", "light");
 
@@ -57,8 +58,13 @@ const coreFunctions = {
       })
       .appendTo("body");
   },
+  login: (fData) => {},
+  signup: (fData) => {},
   openChat: (id) => {
     menu.popup("chat");
+  },
+  redirect: (page) => {
+    menu.goto(page);
   },
   splashFinished: () => {
     menu.goto("main");
@@ -70,4 +76,4 @@ window.coreFunctions = coreFunctions;
 
 menu = new Menu(wrapper, coreFunctions);
 
-menu.goto("splash");
+menu.goto("login");
