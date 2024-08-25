@@ -119,7 +119,7 @@ const menu = {
         marginLeft: "auto",
       })
       .appendTo(buttonsContainer)
-      .on("click", () => {
+      .on("click", async () => {
         if (uNameField.elm.value.trim() == "") {
           uNameField.elm.reportValidity();
           return;
@@ -128,10 +128,26 @@ const menu = {
           passField.elm.reportValidity();
           return;
         }
-        core.login({
+        let authResults = await core.login({
           username: uNameField.elm.value,
           password: passField.elm.value,
         });
+        if (authResults.error) {
+          switch (authResults.message) {
+            case "Invalid user":
+              uNameField.elm.setCustomValidity("This user doesn't exist.");
+              uNameField.elm.reportValidity();
+              break;
+            case "Invalid password.":
+              passField.elm.setCustomValidity("Invalid password.");
+              passField.elm.reportValidity();
+              break;
+            default:
+              alert(authResults.message);
+          }
+          return;
+        }
+        core.redirect("main");
       });
 
     setTimeout(() => {

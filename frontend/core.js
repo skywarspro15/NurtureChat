@@ -7,7 +7,8 @@ theme = theme.default;
 
 import Menu from "./libs/menus.js";
 import Html from "./libs/html.js";
-import Auth from "./libs/auth.js";
+let Auth = await import("./libs/auth.js");
+Auth = Auth.default;
 
 theme.setTheme("Nurtura", "light");
 
@@ -60,19 +61,54 @@ let menu;
   };
 })(window.alert);
 
+async function attemptAuth(fData) {
+  let result = await Auth.login(fData.username, fData.password);
+  if (!result.error) {
+    sessionStorage.setItem("sessionToken", result.token);
+    localStorage.setItem("existingUser", "true");
+  }
+  return result;
+}
+
+let newUser = false;
+if (localStorage.getItem("existingUser") === null) {
+  newUser = true;
+}
+
+console.log("Is new user?", newUser);
+
 const coreFunctions = {
   alert: (text) => {
     alert(text);
   },
-  login: (fData) => {},
-  signup: (fData) => {},
+  login: async (fData) => {
+    return await attemptAuth(fData);
+  },
+  signup: async (fData) => {
+    let result = await Auth.signup(fData.username, fData.password);
+    if (!result.error) {
+      await attemptAuth(fData);
+    }
+    return result;
+  },
   openChat: (id) => {
     menu.popup("chat");
   },
   redirect: (page) => {
     menu.goto(page);
   },
-  splashFinished: () => {
+  splashFinished: async () => {
+    if (newUser) {
+      menu.goto("register");
+      return;
+    }
+    let tokenValid = await Auth.validate(
+      sessionStorage.getItem("sessionToken")
+    );
+    if (!tokenValid) {
+      menu.goto("login");
+      return;
+    }
     menu.goto("main");
   },
 };
@@ -82,4 +118,4 @@ window.coreFunctions = coreFunctions;
 
 menu = new Menu(wrapper, coreFunctions);
 
-menu.goto("login");
+menu.goto("splash");

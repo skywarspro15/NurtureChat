@@ -119,7 +119,7 @@ const menu = {
         marginLeft: "auto",
       })
       .appendTo(buttonsContainer)
-      .on("click", () => {
+      .on("click", async () => {
         if (uNameField.elm.value.trim() == "") {
           uNameField.elm.reportValidity();
           return;
@@ -128,10 +128,22 @@ const menu = {
           passField.elm.reportValidity();
           return;
         }
-        core.signup({
+        let authResults = await core.signup({
           username: uNameField.elm.value,
           password: passField.elm.value,
         });
+        if (authResults.error) {
+          switch (authResults.message) {
+            case "User already exists":
+              uNameField.elm.setCustomValidity("This username is taken");
+              uNameField.elm.reportValidity();
+              break;
+            default:
+              alert(authResults.message);
+          }
+          return;
+        }
+        core.redirect("main");
       });
 
     setTimeout(() => {

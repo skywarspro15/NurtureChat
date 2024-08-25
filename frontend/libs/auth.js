@@ -1,15 +1,15 @@
-class Auth {
-  signup(username, password) {
-    const url = `${location.protocol}://${location.host}/signup`;
+let Auth = {
+  signup: (username, password) => {
+    const url = `signup`;
     const payload = JSON.stringify({ username: username, password: password });
     return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: payload,
     }).then((response) => response.json());
-  }
-  login(username, password) {
-    const url = `${location.protocol}://${location.host}/login`;
+  },
+  login: (username, password) => {
+    const url = `login`;
     const payload = JSON.stringify({ username: username, password: password });
     return fetch(url, {
       method: "POST",
@@ -22,9 +22,9 @@ class Auth {
       .then((data) => {
         return data;
       });
-  }
-  validate(token) {
-    const url = `${location.protocol}://${location.host}/validate`;
+  },
+  validate: (token) => {
+    const url = `validate`;
     return fetch(url, {
       method: "GET",
       headers: {
@@ -35,13 +35,13 @@ class Auth {
       .then((data) => {
         return !data.error;
       });
-  }
-  getInfo(token) {
-    const url = `${location.protocol}://${location.host}/info`;
+  },
+  getInfo: (token) => {
+    const url = `info`;
     return fetch(url, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     }).then((response) => response.json());
-  }
-}
+  },
+};
 export default Auth;
