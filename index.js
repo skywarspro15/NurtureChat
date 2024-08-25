@@ -25,13 +25,13 @@ let characters = {};
 let users = {};
 
 if (!fs.existsSync("characters.json")) {
-  fs.writeFileSync("characters.json", JSON.stringify(characters));
+  fs.writeFileSync("characters.json", JSON.stringify(characters, null, 2));
 } else {
   characters = JSON.parse(fs.readFileSync("characters.json"));
 }
 
 if (!fs.existsSync("users.json")) {
-  fs.writeFileSync("users.json", JSON.stringify(users));
+  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
 } else {
   users = JSON.parse(fs.readFileSync("users.json"));
 }
@@ -56,6 +56,31 @@ const provider = new ai.Provider({
 
 app.use(express.json());
 app.use(express.static("frontend"));
+
+function authenticator(req, res, next) {
+  const token =
+    req.headers.authorization && req.headers.authorization.split(" ")[1];
+
+  if (!token) {
+    res.status(401);
+    return res.json({ error: true, message: "Authentication failed" });
+  }
+
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      res.status(403);
+      return res.json({ error: true, message: "Authentication failed" });
+    }
+
+    if (!decoded) {
+      res.status(500);
+      return res.json({ error: true, message: "Failed to decode JWT token" });
+    }
+
+    req.user = decoded;
+    next();
+  });
+}
 
 app.post("/signup", (req, res) => {
   let { username, password } = req.body;
@@ -100,6 +125,14 @@ app.post("/login", (req, res) => {
     res.status(500);
     return res.json({ error: true, message: "Invalid user" });
   }
+});
+
+app.get("/validate", authenticator, (req, res) => {
+  res.json({ error: false, message: req.user });
+});
+
+app.get("/info", authenticator, (req, res) => {
+  res.send(users[req.user.username]["public"]);
 });
 
 io.use((socket, next) => {
