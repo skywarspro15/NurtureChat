@@ -32,8 +32,8 @@ wrapper.clear();
 
 let menu;
 
-const coreFunctions = {
-  alert: (text) => {
+(function () {
+  window.alert = function () {
     let dialog = new Html("md-dialog")
       .attr({ open: true })
       .appendMany(
@@ -44,7 +44,7 @@ const coreFunctions = {
             id: "form-id",
             method: "dialog",
           })
-          .text(text),
+          .text(arguments[0]),
         new Html("div")
           .attr({ slot: "actions" })
           .append(
@@ -57,6 +57,12 @@ const coreFunctions = {
         }, 800);
       })
       .appendTo("body");
+  };
+})(window.alert);
+
+const coreFunctions = {
+  alert: (text) => {
+    alert(text);
   },
   login: (fData) => {},
   signup: (fData) => {},
