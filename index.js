@@ -182,6 +182,7 @@ io.on("connection", (socket) => {
     return;
   }
   socket.emit("conversations", users[socket.handshake.auth.name].conversations);
+  socket.emit("characters", characters);
   socket.on("createConversation", (data) => {
     let characterId = parseInt(data);
     let userName = socket.handshake.auth.name;

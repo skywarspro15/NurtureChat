@@ -1,5 +1,6 @@
 import "@material/web/all.js";
 import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";
+import { io } from "./libs/socket.io.esm.min.js";
 
 document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
 let theme = await import("./libs/theming.js");
@@ -71,6 +72,8 @@ async function attemptAuth(fData) {
 }
 
 let newUser = false;
+let socket;
+let characters = [];
 if (localStorage.getItem("existingUser") === null) {
   newUser = true;
 }
@@ -91,6 +94,9 @@ const coreFunctions = {
     }
     return result;
   },
+  startChat: () => {
+    menu.popup("newChat");
+  },
   openChat: (id) => {
     menu.popup("chat");
   },
@@ -110,6 +116,15 @@ const coreFunctions = {
       return;
     }
     menu.goto("main");
+  },
+  startSocket: () => {
+    socket = io({ auth: { token: sessionStorage.getItem("sessionToken") } });
+    socket.on("characters", (data) => {
+      characters = data;
+    });
+  },
+  getCharacters: () => {
+    return characters;
   },
 };
 

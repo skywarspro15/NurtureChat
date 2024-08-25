@@ -1,6 +1,7 @@
 const menu = {
   title: "NurtureChat - Nurturing Stories",
   contents: (wrapper, Html, core) => {
+    core.startSocket();
     wrapper.styleJs({
       display: "flex",
       flexDirection: "column",
@@ -184,7 +185,7 @@ const menu = {
         right: "1.5rem",
       })
       .on("click", () => {
-        core.alert("Not implemented");
+        core.startChat();
       });
     setTimeout(() => {
       anime({

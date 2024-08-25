@@ -79,15 +79,16 @@ class Menu {
       easing: "cubicBezier(0.19,1,0.22,1)",
     });
     setTimeout(async () => {
+      const page = await import(`../menus/${name}.js`);
       const menuFuncs = {
         title: (title) => {
           headerText.text(title);
         },
+        close: () => {
+          closePopup();
+        },
       };
-      const page = await import(`../menus/${name}.js`);
-      headerText.text(page.default.title);
-      page.default.contents(popupContent, this.Html, this.coreFuncs, menuFuncs);
-      headerButton.on("click", () => {
+      let closePopup = () => {
         anime({
           targets: popupContainer.elm,
           top: "100px",
@@ -99,6 +100,11 @@ class Menu {
           page.default.end();
           popupContainer.cleanup();
         }, 350);
+      };
+      headerText.text(page.default.title);
+      page.default.contents(popupContent, this.Html, this.coreFuncs, menuFuncs);
+      headerButton.on("click", () => {
+        closePopup();
       });
     }, 150);
   }
