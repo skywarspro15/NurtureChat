@@ -1,7 +1,6 @@
 const menu = {
   title: "NurtureChat - Nurturing Stories",
   contents: (wrapper, Html, core) => {
-    core.startSocket();
     wrapper.styleJs({
       display: "flex",
       flexDirection: "column",
@@ -47,89 +46,6 @@ const menu = {
       })
       .appendTo(wrapper);
 
-    let characters = [
-      {
-        image:
-          "https://characterai.io/i/200/static/avatars/uploaded/2023/2/13/0amp4OyvCn45BEOGFF-SeVv_6k2bwUQM0pFH5unIy4Q.webp?webp=true&anim=0",
-        name: "Alice the Bully",
-      },
-      // helper because why tf not
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/builtin/helper.svg",
-        name: "Helper",
-      },
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/community/milo.jpeg",
-        name: "Milo the Cat",
-      },
-      {
-        image:
-          "https://characterai.io/i/200/static/avatars/uploaded/2023/2/13/0amp4OyvCn45BEOGFF-SeVv_6k2bwUQM0pFH5unIy4Q.webp?webp=true&anim=0",
-        name: "Alice the Bully",
-      },
-      // helper because why tf not
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/builtin/helper.svg",
-        name: "Helper",
-      },
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/community/milo.jpeg",
-        name: "Milo the Cat",
-      },
-      {
-        image:
-          "https://characterai.io/i/200/static/avatars/uploaded/2023/2/13/0amp4OyvCn45BEOGFF-SeVv_6k2bwUQM0pFH5unIy4Q.webp?webp=true&anim=0",
-        name: "Alice the Bully",
-      },
-      // helper because why tf not
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/builtin/helper.svg",
-        name: "Helper",
-      },
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/community/milo.jpeg",
-        name: "Milo the Cat",
-      },
-      {
-        image:
-          "https://characterai.io/i/200/static/avatars/uploaded/2023/2/13/0amp4OyvCn45BEOGFF-SeVv_6k2bwUQM0pFH5unIy4Q.webp?webp=true&anim=0",
-        name: "Alice the Bully",
-      },
-      // helper because why tf not
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/builtin/helper.svg",
-        name: "Helper",
-      },
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/community/milo.jpeg",
-        name: "Milo the Cat",
-      },
-      {
-        image:
-          "https://characterai.io/i/200/static/avatars/uploaded/2023/2/13/0amp4OyvCn45BEOGFF-SeVv_6k2bwUQM0pFH5unIy4Q.webp?webp=true&anim=0",
-        name: "Alice the Bully",
-      },
-      // helper because why tf not
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/builtin/helper.svg",
-        name: "Helper",
-      },
-      {
-        image:
-          "https://ai.nxw.pw/Cupertino.mp4/assets/avatars/community/milo.jpeg",
-        name: "Milo the Cat",
-      },
-    ];
-
     //oog eht ni gnitnemmoc ekil si siht
     //  ????????????????????????
     //  man is speaking enchantment table
@@ -159,19 +75,23 @@ const menu = {
       })
       .appendTo(listContainer);
 
-    characters.forEach((item) => {
-      let listItem = new Html("md-list-item")
-        .attr({ type: "button" })
-        .html(`${item.name}`)
-        .appendTo(list)
-        .on("click", () => {
-          core.openChat();
-        });
-      new Html("img")
-        .attr({ slot: "start", src: item.image })
-        .styleJs({ width: "56px", borderRadius: "50%" })
-        .appendTo(listItem);
-      new Html("md-divider").appendTo(list);
+    document.addEventListener("conversations", (e) => {
+      let conversations = e.detail;
+      list.clear();
+      conversations.forEach((item, index) => {
+        new Html("md-list-item")
+          .attr({ type: "button" })
+          .html(`${item.name}`)
+          .appendTo(list)
+          .on("click", () => {
+            core.openChat(item.conversationId);
+          });
+        // new Html("img")
+        //   .attr({ slot: "start", src: item.image })
+        //   .styleJs({ width: "56px", borderRadius: "50%" })
+        //   .appendTo(listItem);
+        new Html("md-divider").appendTo(list);
+      });
     });
 
     new Html("md-fab")
@@ -195,6 +115,7 @@ const menu = {
         easing: "cubicBezier(0.19,1,0.22,1)",
       });
     }, 100);
+    core.startSocket();
   },
   end: () => {
     console.log("UI killed me!!!");

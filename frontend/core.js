@@ -98,7 +98,17 @@ const coreFunctions = {
     menu.popup("newChat");
   },
   openChat: (id) => {
-    menu.popup("chat");
+    socket.emit("joinConversation", id);
+  },
+  createChat: (charId) => {
+    socket.emit("createConversation", charId);
+  },
+  endChat: () => {
+    console.log("ending conversation");
+    socket.emit("endConvo");
+  },
+  sendMessage: (message) => {
+    socket.emit("send", message);
   },
   redirect: (page) => {
     menu.goto(page);
@@ -121,6 +131,29 @@ const coreFunctions = {
     socket = io({ auth: { token: sessionStorage.getItem("sessionToken") } });
     socket.on("characters", (data) => {
       characters = data;
+    });
+    socket.on("conversations", (convData) => {
+      document.dispatchEvent(
+        new CustomEvent("conversations", { detail: convData })
+      );
+    });
+    socket.on("msg", (message) => {
+      document.dispatchEvent(
+        new CustomEvent("characterMessage", { detail: message })
+      );
+    });
+    socket.on("sendError", (message) => {
+      document.dispatchEvent(new CustomEvent("sendError", { detail: message }));
+    });
+    socket.on("creationError", (msg) => {
+      alert(msg);
+    });
+    socket.on("creationSuccess", (convId) => {
+      console.log(convId);
+      socket.emit("joinConversation", convId);
+    });
+    socket.on("conversationData", (convData) => {
+      menu.popup("chat", convData);
     });
   },
   getCharacters: () => {

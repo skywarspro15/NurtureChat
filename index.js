@@ -156,7 +156,6 @@ app.get("/info", authenticator, (req, res) => {
 });
 
 io.use((socket, next) => {
-  console.log(socket.handshake);
   const token = socket.handshake.auth.token;
   if (!token) {
     next(new Error("Authentication required"));
@@ -202,9 +201,16 @@ io.on("connection", (socket) => {
       `conversations/${convId}.json`,
       JSON.stringify(conversationData, null, 2)
     );
-    users[userName].conversations.push(convId);
+    users[userName].conversations.push({
+      name: characters[characterId].name,
+      conversationId: convId,
+    });
     fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
-    socket.emit("creationSuccess");
+    socket.emit(
+      "conversations",
+      users[socket.handshake.auth.name].conversations
+    );
+    socket.emit("creationSuccess", convId);
   });
   socket.on("joinConversation", (conversationId) => {
     let convoData = JSON.parse(
@@ -217,7 +223,7 @@ io.on("connection", (socket) => {
     );
     socket.conversation.setContext(convoData.messages);
     socket.conversationId = conversationId;
-    socket.emit("conversationData", convoData.messages);
+    socket.emit("conversationData", convoData);
   });
   socket.on("send", async (msg) => {
     let convoData = JSON.parse(
@@ -231,8 +237,8 @@ io.on("connection", (socket) => {
     console.log("msg response");
     console.log(msgResponse);
     if (msgResponse.error) {
-      socket.emit("sendError", msgResponse.message);
       socket.conversation.setContext(convoData.messages);
+      socket.emit("sendError", msgResponse.message);
       return;
     }
     let curContext = socket.conversation.getContext();

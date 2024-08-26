@@ -7,7 +7,7 @@ class Menu {
     this.coreFuncs = functions;
     this.currentPage = null;
   }
-  async goto(name) {
+  async goto(name, args = {}) {
     if (this.currentPage) {
       this.currentPage.end();
     }
@@ -20,9 +20,15 @@ class Menu {
     const page = await import(`../menus/${name}.js`);
     this.currentPage = page.default;
     document.title = page.default.title;
-    page.default.contents(this.wrapper, this.Html, this.coreFuncs, menuFuncs);
+    page.default.contents(
+      this.wrapper,
+      this.Html,
+      this.coreFuncs,
+      menuFuncs,
+      args
+    );
   }
-  async popup(name) {
+  async popup(name, args = {}) {
     let popupContainer = new Html("div").id("#popupMenu").styleJs({
       zIndex: "1000",
       position: "absolute",
@@ -89,6 +95,7 @@ class Menu {
         },
       };
       let closePopup = () => {
+        page.default.end();
         anime({
           targets: popupContainer.elm,
           top: "100px",
@@ -97,12 +104,17 @@ class Menu {
           easing: "cubicBezier(0.19,1,0.22,1)",
         });
         setTimeout(() => {
-          page.default.end();
           popupContainer.cleanup();
         }, 350);
       };
       headerText.text(page.default.title);
-      page.default.contents(popupContent, this.Html, this.coreFuncs, menuFuncs);
+      page.default.contents(
+        popupContent,
+        this.Html,
+        this.coreFuncs,
+        menuFuncs,
+        args
+      );
       headerButton.on("click", () => {
         closePopup();
       });

@@ -27,14 +27,14 @@ const menu = {
         background: "transparent",
       })
       .appendTo(listContainer);
-    characters.forEach((item) => {
-      let listItem = new Html("md-list-item")
+    characters.forEach((item, index) => {
+      new Html("md-list-item")
         .attr({ type: "button" })
         .html(`${item.name}`)
         .appendTo(list)
         .on("click", () => {
           menu.close();
-          core.openChat();
+          core.createChat(index);
         });
       new Html("md-divider").appendTo(list);
     });

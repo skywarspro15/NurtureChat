@@ -38,6 +38,7 @@ class ChatSession {
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: instructions,
+      safetySettings: safetySettings,
     });
     this.session = this.model.startChat({
       generationConfig: data.generationConfig,
