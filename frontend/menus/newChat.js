@@ -7,7 +7,7 @@ const menu = {
       display: "flex",
       flexDirection: "column",
     });
-    new Html("md-filled-text-field")
+    let searchField = new Html("md-filled-text-field")
       .attr({
         label: "Search for characters...",
         type: "text",
@@ -17,6 +17,10 @@ const menu = {
       .styleJs({ width: "100%" })
       .appendTo(wrapper);
     let characters = core.getCharacters();
+    let fuseOptions = {
+      keys: ["name"],
+    };
+    const fuse = new Fuse(characters, fuseOptions);
     let listContainer = new Html("div")
       .styleJs({
         width: "100%",
@@ -29,16 +33,40 @@ const menu = {
         background: "transparent",
       })
       .appendTo(listContainer);
-    characters.forEach((item, index) => {
-      new Html("md-list-item")
-        .attr({ type: "button" })
-        .html(`${item.name}`)
-        .appendTo(list)
-        .on("click", () => {
-          menu.close();
-          core.createChat(index);
-        });
-      new Html("md-divider").appendTo(list);
+    function renderAll() {
+      list.clear();
+      characters.forEach((item, index) => {
+        new Html("md-list-item")
+          .attr({ type: "button" })
+          .html(`${item.name}`)
+          .appendTo(list)
+          .on("click", () => {
+            menu.close();
+            core.createChat(item.id);
+          });
+        new Html("md-divider").appendTo(list);
+      });
+    }
+    renderAll();
+    searchField.on("keyup", () => {
+      let searchPattern = searchField.elm.value;
+      let searchResults = fuse.search(searchPattern);
+      list.clear();
+      if (searchPattern.trim() == "") {
+        renderAll();
+        return;
+      }
+      searchResults.forEach((result) => {
+        new Html("md-list-item")
+          .attr({ type: "button" })
+          .html(`${result.item.name}`)
+          .appendTo(list)
+          .on("click", () => {
+            menu.close();
+            core.createChat(result.item.id);
+          });
+        new Html("md-divider").appendTo(list);
+      });
     });
   },
   end: () => {
