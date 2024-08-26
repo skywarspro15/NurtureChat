@@ -1,4 +1,3 @@
-let conversationsCb;
 const menu = {
   title: "NurtureChat - Nurturing Stories",
   contents: (wrapper, Html, core) => {
@@ -19,7 +18,7 @@ const menu = {
 
     new Html("h1")
       .class("md-typescale-display-large")
-      .text("Nurture.ai")
+      .text("Discover")
       .appendTo(container)
       .styleJs({
         color: "var(--md-sys-color-inverse-surface)",
@@ -29,7 +28,7 @@ const menu = {
 
     new Html("p")
       .class("md-typescale-headline-medium")
-      .text("Nurturing stories, nurturing personalities.")
+      .text("Find characters to chat with")
       .appendTo(container)
       .styleJs({
         color: "var(--md-sys-color-inverse-surface)",
@@ -54,47 +53,14 @@ const menu = {
       })
       .appendTo(listContainer);
 
-    conversationsCb = (e) => {
-      let conversations = e.detail;
-      list.clear();
-      conversations.forEach((item) => {
-        new Html("md-list-item")
-          .attr({ type: "button" })
-          .html(`${item.name}`)
-          .appendTo(list)
-          .on("click", () => {
-            core.openChat(item.conversationId);
-          });
-        new Html("md-divider").appendTo(list);
-      });
-      if (conversations.length == 0) {
-        new Html("md-list-item")
-          .attr({ type: "button" })
-          .html(`No conversations yet`)
-          .appendTo(list)
-          .on("click", () => {
-            core.startChat();
-          });
-      }
-    };
-
-    let conversations = core.getConversations();
-    conversationsCb({ detail: conversations });
-    document.addEventListener("conversations", conversationsCb);
-
-    new Html("md-fab")
-      .attr({ label: "New chat" })
-      .append(new Html("md-icon").attr({ slot: "icon" }).html("chat"))
-      .appendTo(wrapper)
-      .styleJs({
-        color: "var(--md-sys-color-on-primary)",
-        position: "fixed",
-        bottom: "calc(8% + 1.5rem)",
-        right: "1.5rem",
-      })
-      .on("click", () => {
-        core.startChat();
-      });
+    let characters = core.getCharacters();
+    characters.forEach((item) => {
+      new Html("md-list-item")
+        .attr({ type: "button" })
+        .html(`${item.name}`)
+        .appendTo(list);
+      new Html("md-divider").appendTo(list);
+    });
     setTimeout(() => {
       anime({
         targets: wrapper.elm,
@@ -103,11 +69,9 @@ const menu = {
         easing: "cubicBezier(0.19,1,0.22,1)",
       });
     }, 100);
-    core.startSocket();
   },
   end: () => {
     console.log("UI killed me!!!");
-    document.removeEventListener("conversations", conversationsCb);
   },
 };
 

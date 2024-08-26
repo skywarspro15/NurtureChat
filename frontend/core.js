@@ -1,4 +1,6 @@
 import "@material/web/all.js";
+import "@material/web/navigationbar/navigation-bar.js";
+import "@material/web/navigationtab/navigation-tab.js";
 import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";
 import { io } from "./libs/socket.io.esm.min.js";
 
@@ -74,11 +76,84 @@ async function attemptAuth(fData) {
 let newUser = false;
 let socket;
 let characters = [];
+let conversations = [];
 if (localStorage.getItem("existingUser") === null) {
   newUser = true;
 }
-
 console.log("Is new user?", newUser);
+
+let tabs = [
+  {
+    label: "Home",
+    icon: "home",
+    menu: "main",
+  },
+  {
+    label: "Discover",
+    icon: "explore",
+    menu: "discover",
+  },
+];
+let tabDiv;
+
+function renderTabs() {
+  wrapper.styleJs({
+    height: "92%",
+  });
+  let body = Html.qs("body");
+  tabDiv = new Html("div")
+    .class("compact")
+    .styleJs({
+      position: "fixed",
+      bottom: "0",
+      left: "0",
+      width: "100%",
+      height: "8%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    })
+    .appendTo(body);
+  let navBar = new Html("md-navigation-bar")
+    .attr({ "active-index": "0" })
+    .styleJs({
+      minHeight: "100%",
+      minWidth: "100%",
+      margin: "0",
+      padding: "0",
+    })
+    .appendTo(tabDiv);
+  tabs.forEach((tab, index) => {
+    new Html("md-navigation-tab")
+      .attr({ label: tab.label })
+      .appendMany(
+        new Html("md-icon").attr({ slot: "active-icon" }).text(tab.icon),
+        new Html("md-icon").attr({ slot: "inactive-icon" }).text(tab.icon)
+      )
+      .appendTo(navBar)
+      .on("click", () => {
+        menu.goto(tab.menu);
+      });
+  });
+}
+
+function hideTabs() {
+  tabDiv.styleJs({
+    display: "none",
+  });
+  wrapper.styleJs({
+    height: "100%",
+  });
+}
+
+function showTabs() {
+  tabDiv.styleJs({
+    display: "flex",
+  });
+  wrapper.styleJs({
+    height: "92%",
+  });
+}
 
 const coreFunctions = {
   alert: (text) => {
@@ -95,6 +170,7 @@ const coreFunctions = {
     return result;
   },
   startChat: () => {
+    hideTabs();
     menu.popup("newChat");
   },
   openChat: (id) => {
@@ -104,6 +180,7 @@ const coreFunctions = {
     socket.emit("createConversation", charId);
   },
   endChat: () => {
+    showTabs();
     console.log("ending conversation");
     socket.emit("endConvo");
   },
@@ -112,6 +189,9 @@ const coreFunctions = {
   },
   redirect: (page) => {
     menu.goto(page);
+    if (page == "main") {
+      renderTabs();
+    }
   },
   splashFinished: async () => {
     if (newUser) {
@@ -126,38 +206,52 @@ const coreFunctions = {
       return;
     }
     menu.goto("main");
+    renderTabs();
+  },
+  showBottomBar: () => {
+    showTabs();
   },
   startSocket: () => {
-    socket = io({ auth: { token: sessionStorage.getItem("sessionToken") } });
-    socket.on("characters", (data) => {
-      characters = data;
-    });
-    socket.on("conversations", (convData) => {
-      document.dispatchEvent(
-        new CustomEvent("conversations", { detail: convData })
-      );
-    });
-    socket.on("msg", (message) => {
-      document.dispatchEvent(
-        new CustomEvent("characterMessage", { detail: message })
-      );
-    });
-    socket.on("sendError", (message) => {
-      document.dispatchEvent(new CustomEvent("sendError", { detail: message }));
-    });
-    socket.on("creationError", (msg) => {
-      alert(msg);
-    });
-    socket.on("creationSuccess", (convId) => {
-      console.log(convId);
-      socket.emit("joinConversation", convId);
-    });
-    socket.on("conversationData", (convData) => {
-      menu.popup("chat", convData);
-    });
+    if (!socket) {
+      socket = io({ auth: { token: sessionStorage.getItem("sessionToken") } });
+
+      socket.on("characters", (data) => {
+        characters = data;
+      });
+      socket.on("conversations", (convData) => {
+        document.dispatchEvent(
+          new CustomEvent("conversations", { detail: convData })
+        );
+        conversations = convData;
+      });
+      socket.on("msg", (message) => {
+        document.dispatchEvent(
+          new CustomEvent("characterMessage", { detail: message })
+        );
+      });
+      socket.on("sendError", (message) => {
+        document.dispatchEvent(
+          new CustomEvent("sendError", { detail: message })
+        );
+      });
+      socket.on("creationError", (msg) => {
+        alert(msg);
+      });
+      socket.on("creationSuccess", (convId) => {
+        console.log(convId);
+        socket.emit("joinConversation", convId);
+      });
+      socket.on("conversationData", (convData) => {
+        hideTabs();
+        menu.popup("chat", convData);
+      });
+    }
   },
   getCharacters: () => {
     return characters;
+  },
+  getConversations: () => {
+    return conversations;
   },
 };
 

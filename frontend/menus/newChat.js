@@ -1,6 +1,8 @@
+let Core;
 const menu = {
   title: "New conversation",
   contents: (wrapper, Html, core, menu) => {
+    Core = core;
     wrapper.styleJs({
       display: "flex",
       flexDirection: "column",
@@ -41,6 +43,7 @@ const menu = {
   },
   end: () => {
     console.log("UI killed me!!!");
+    Core.showBottomBar();
   },
 };
 

@@ -58,7 +58,7 @@ function makeId(length) {
 const provider = new ai.Provider({
   apiKey: process.env.API_KEY,
   generationConfig: {
-    temperature: 1,
+    temperature: 2,
     topP: 0.95,
     topK: 64,
     maxOutputTokens: 8192,
