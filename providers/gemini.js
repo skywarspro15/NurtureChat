@@ -23,7 +23,7 @@ class Provider {
 }
 
 class ChatSession {
-  constructor(data, instructions) {
+  constructor(data, instructions = "") {
     let safetySettings = [];
     if (data.optionalData.safetySettings) {
       let safetyData = data.optionalData.safetySettings;
@@ -65,11 +65,19 @@ class ChatSession {
 
   setContext(context) {
     let geminiFormatted = [];
+    let lastMsg = { role: "none", index: -1 };
     context.forEach((part) => {
-      geminiFormatted.push({
-        role: part.role,
-        parts: [{ text: part.content }],
-      });
+      if (part.role == lastMsg.role) {
+        let prevMsg = geminiFormatted[lastMsg.index];
+        prevMsg.parts.push({ text: part.content });
+      } else {
+        lastMsg.role = part.role;
+        lastMsg.index =
+          geminiFormatted.push({
+            role: part.role,
+            parts: [{ text: part.content }],
+          }) - 1;
+      }
     });
     this.session._history = geminiFormatted;
   }

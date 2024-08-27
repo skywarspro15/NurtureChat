@@ -250,7 +250,15 @@ io.on("connection", (socket) => {
     socket.emit("msg", msgResponse.message);
   });
   socket.on("updateContext", (context) => {
+    let convoData = JSON.parse(
+      fs.readFileSync(`conversations/${socket.conversationId}.json`)
+    );
     socket.conversation.setContext(context);
+    convoData.messages = context;
+    fs.writeFileSync(
+      `conversations/${socket.conversationId}.json`,
+      JSON.stringify(convoData, null, 2)
+    );
     socket.emit("contextUpdated");
   });
   socket.on("disconnect", () => {
