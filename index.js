@@ -248,6 +248,7 @@ io.on("connection", (socket) => {
       JSON.stringify(convoData, null, 2)
     );
     socket.emit("msg", msgResponse.message);
+    socket.emit("contextUpdate", curContext);
   });
   socket.on("updateContext", (context) => {
     let convoData = JSON.parse(
@@ -259,7 +260,7 @@ io.on("connection", (socket) => {
       `conversations/${socket.conversationId}.json`,
       JSON.stringify(convoData, null, 2)
     );
-    socket.emit("contextUpdated");
+    socket.emit("contextUpdate", context);
   });
   socket.on("disconnect", () => {
     if (socket.conversation) {

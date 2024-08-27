@@ -187,6 +187,9 @@ const coreFunctions = {
   sendMessage: (message) => {
     socket.emit("send", message);
   },
+  updateContext: (context) => {
+    socket.emit("updateContext", context);
+  },
   redirect: (page) => {
     menu.goto(page);
     if (page == "main") {
@@ -244,6 +247,9 @@ const coreFunctions = {
       socket.on("conversationData", (convData) => {
         hideTabs();
         menu.popup("chat", convData);
+      });
+      socket.on("contextUpdate", (context) => {
+        document.dispatchEvent(new CustomEvent("context", { detail: context }));
       });
     }
   },
