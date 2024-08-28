@@ -188,7 +188,12 @@ const coreFunctions = {
     socket.emit("send", message);
   },
   updateContext: (context) => {
-    socket.emit("updateContext", context);
+    return new Promise((resolve, reject) => {
+      socket.emit("updateContext", context);
+      document.addEventListener("context", (e) => {
+        resolve(e.detail);
+      });
+    });
   },
   redirect: (page) => {
     menu.goto(page);

@@ -1,5 +1,4 @@
 let Core, sendErrCb, msgCb, contextCb;
-let conversationIndex = 0;
 let context = [];
 const menu = {
   title: "Loading....",
@@ -87,7 +86,6 @@ const menu = {
       chat.elm.scrollTop = chat.elm.scrollHeight;
     }
 
-    conversationIndex = args.messages.length;
     let msgMenu = (message) => {
       console.log(message);
       let actionsList = [
@@ -110,6 +108,40 @@ const menu = {
             } else {
               alert("Delete failed");
             }
+            methods.close();
+          },
+        },
+        {
+          icon: "refresh",
+          text: "Reroll",
+          action: async (methods, message) => {
+            const msgIndex = context.indexOf(message);
+            if (msgIndex < -1) {
+              alert("Reroll failed");
+              methods.close();
+              return;
+            }
+            let isAi = message.role == "model" ? true : false;
+            let canReroll = msgIndex == context.length - 1;
+            if (!isAi) {
+              alert("Cannot reroll: You wrote this message");
+              methods.close();
+              return;
+            }
+            if (!canReroll) {
+              alert("Can't reroll here!");
+              methods.close();
+              return;
+            }
+            let lastMessage = context[msgIndex - 1];
+            console.log(lastMessage);
+            context.splice(msgIndex, 1);
+            context.splice(msgIndex - 1, 1);
+            await core.updateContext(context);
+            createBubble(lastMessage.content, true, () => {
+              console.log("no cb yet");
+            });
+            core.sendMessage(lastMessage.content);
             methods.close();
           },
         },
