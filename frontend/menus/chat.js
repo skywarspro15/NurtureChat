@@ -101,13 +101,31 @@ const menu = {
           icon: "delete",
           text: "Delete message",
           action: (methods, message) => {
-            const msgIndex = context.indexOf(message);
-            if (msgIndex > -1) {
-              context.splice(msgIndex, 1);
-              core.updateContext(context);
-            } else {
+            let msgIndex = context.indexOf(message);
+            if (msgIndex < -1) {
               alert("Delete failed");
+              methods.close();
+              return;
             }
+            let isAi = message.role == "model" ? true : false;
+            let lastMessage = context[msgIndex - 1];
+            let nextMessage = context[msgIndex + 1];
+            if (
+              typeof lastMessage !== "undefined" &&
+              lastMessage.role == "user" &&
+              isAi
+            ) {
+              context.splice(msgIndex - 1, 1);
+            }
+            if (
+              typeof nextMessage !== "undefined" &&
+              nextMessage.role == "model" &&
+              !isAi
+            ) {
+              context.splice(msgIndex + 1, 1);
+            }
+            context.splice(context.indexOf(message), 1);
+            core.updateContext(context);
             methods.close();
           },
         },
