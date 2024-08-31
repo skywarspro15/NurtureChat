@@ -1,5 +1,6 @@
 let Core, sendErrCb, msgCb, contextCb;
 let context = [];
+let generating = false;
 const menu = {
   title: "Loading....",
   contents: (wrapper, Html, core, menu, args) => {
@@ -159,6 +160,7 @@ const menu = {
             createBubble(lastMessage.content, true, () => {
               console.log("no cb yet");
             });
+            generating = true;
             core.sendMessage(lastMessage.content);
             methods.close();
           },
@@ -212,6 +214,7 @@ const menu = {
 
     msgCb = (e) => {
       let message = e.detail;
+      generating = false;
       createBubble(message, false, () => {
         console.log("no cb yet");
       });
@@ -247,6 +250,8 @@ const menu = {
       .append(new Html("md-icon").text("send"))
       .appendTo(inputContainer)
       .on("click", () => {
+        if (generating) return;
+        generating = true;
         createBubble(msgField.elm.value, true, () => {
           console.log("no cb yet");
         });
