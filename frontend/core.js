@@ -1,4 +1,5 @@
 import "@material/web/all.js";
+import "@material/web/card/outlined-card.js";
 import "@material/web/navigationbar/navigation-bar.js";
 import "@material/web/navigationtab/navigation-tab.js";
 import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";

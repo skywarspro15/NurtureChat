@@ -46,19 +46,48 @@ const menu = {
       })
       .appendTo(wrapper);
 
-    let list = new Html("md-list")
+    let list = new Html("div")
+      .class("flex")
+      .class("g12")
       .styleJs({
         maxWidth: "100%",
         background: "transparent",
+        flexWrap: "wrap",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
       })
       .appendTo(listContainer);
-
+    new Html("br").appendTo(list);
     let characters = core.getCharacters();
     characters.forEach((item) => {
-      new Html("md-list-item")
-        .attr({ type: "button" })
-        .html(`${item.name}`)
-        .appendTo(list);
+      let card = new Html("md-outlined-card")
+        .appendTo(list)
+        .styleJs({ width: "90%" });
+      let cardContents = new Html("div")
+        .class("flex")
+        .class("col")
+        .class("g12")
+        .class("p16")
+        .appendTo(card);
+      new Html("div")
+        .class("card-title")
+        .text(item.name)
+        .appendTo(cardContents);
+      new Html("div")
+        .text(item.description ? item.description : "No description provided.")
+        .appendTo(cardContents);
+      new Html("div")
+        .class("flex")
+        .class("g8")
+        .class("jcr")
+        .class("mt12")
+        .appendMany(
+          new Html("md-filled-button").text("Start chat").on("click", () => {
+            core.createChat(item.id);
+          })
+        )
+        .appendTo(cardContents);
       new Html("md-divider").appendTo(list);
     });
     setTimeout(() => {
