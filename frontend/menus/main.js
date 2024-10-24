@@ -60,7 +60,12 @@ const menu = {
       conversations.forEach((item) => {
         new Html("md-list-item")
           .attr({ type: "button" })
-          .html(`${item.name}`)
+          .appendMany(
+            new Html("div").attr({ slot: "headline" }).text(item.name),
+            new Html("div")
+              .attr({ slot: "supporting-text" })
+              .text(item.lastMessage)
+          )
           .appendTo(list)
           .on("click", () => {
             core.openChat(item.conversationId);

@@ -42,6 +42,41 @@ fs.stat("conversations/", (err, stats) => {
   }
 });
 
+let userArr = Object.keys(users);
+console.log(
+  `[SERVER] There are currently ${userArr.length} accounts in this instance.`
+);
+
+for (const username of userArr) {
+  console.log(`[SERVER] Checking user ${username}`);
+  let userConvos = users[username].conversations;
+  userConvos.forEach((conversation, index) => {
+    if (!conversation.hasOwnProperty("lastMessage")) {
+      let convoData = JSON.parse(
+        fs.readFileSync(`conversations/${conversation.conversationId}.json`)
+      );
+
+      convoData.belongsTo = username;
+      convoData.convNumber = index;
+
+      fs.writeFileSync(
+        `conversations/${conversation.conversationId}.json`,
+        JSON.stringify(convoData, null, 2)
+      );
+
+      let messages = convoData.messages;
+      let messageObj = messages[messages.length - 1];
+      let lastMessage = messageObj ? messageObj.content : undefined;
+      let formatted = lastMessage
+        ? lastMessage.substring(0, 50).replace(/(\r\n|\n|\r)/gm, "") + "..."
+        : "This conversation is empty.";
+      users[username].conversations[index].lastMessage = formatted;
+    }
+  });
+}
+
+fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+
 function makeId(length) {
   let result = "";
   const characters =
@@ -193,6 +228,8 @@ io.on("connection", (socket) => {
     }
     let convId = `${makeId(5)}-${makeId(5)}-${makeId(5)}`;
     let conversationData = {
+      belongsTo: userName,
+      convNumber: users[userName].conversations.length,
       character: characters[characterId],
       started: new Date().toISOString(),
       messages: [],
@@ -204,6 +241,7 @@ io.on("connection", (socket) => {
     users[userName].conversations.push({
       name: characters[characterId].name,
       conversationId: convId,
+      lastMessage: "This conversation is empty.",
     });
     fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
     socket.emit(
@@ -217,13 +255,15 @@ io.on("connection", (socket) => {
       fs.readFileSync(`conversations/${conversationId}.json`)
     );
     console.log(convoData);
-    socket.conversation = new ai.ChatSession(
-      provider,
-      convoData.character.prompt
-    );
-    socket.conversation.setContext(convoData.messages);
-    socket.conversationId = conversationId;
-    socket.emit("conversationData", convoData);
+    if (convoData.belongsTo == socket.handshake.auth.name) {
+      socket.conversation = new ai.ChatSession(
+        provider,
+        convoData.character.prompt
+      );
+      socket.conversation.setContext(convoData.messages);
+      socket.conversationId = conversationId;
+      socket.emit("conversationData", convoData);
+    }
   });
   socket.on("send", async (msg) => {
     let convoData = JSON.parse(
@@ -268,14 +308,36 @@ io.on("connection", (socket) => {
       socket.conversation.destroy();
     }
   });
-  socket.on("endConvo", () => {
+  socket.on("endConvo", (convNumber) => {
     if (socket.conversation) {
       socket.conversationId = null;
       socket.conversation.destroy();
     }
+
+    let username = socket.handshake.auth.name;
+    let userConvos = users[username].conversations;
+    let conversation = userConvos[convNumber];
+
+    let convoData = JSON.parse(
+      fs.readFileSync(`conversations/${conversation.conversationId}.json`)
+    );
+
+    fs.writeFileSync(
+      `conversations/${conversation.conversationId}.json`,
+      JSON.stringify(convoData, null, 2)
+    );
+
+    let messages = convoData.messages;
+    let messageObj = messages[messages.length - 1];
+    let lastMessage = messageObj ? messageObj.content : undefined;
+    let formatted = lastMessage
+      ? lastMessage.substring(0, 50).replace(/(\r\n|\n|\r)/gm, "") + "..."
+      : "This conversation is empty.";
+    users[username].conversations[convNumber].lastMessage = formatted;
+    fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
   });
 });
 
 server.listen(port, () => {
-  console.log(`NurtureChat instance listening on port ${port}`);
+  console.log(`[SERVER] NurtureChat instance listening on port ${port}`);
 });

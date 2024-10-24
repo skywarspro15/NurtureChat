@@ -180,10 +180,10 @@ const coreFunctions = {
   createChat: (charId) => {
     socket.emit("createConversation", charId);
   },
-  endChat: () => {
+  endChat: (convNumber) => {
     showTabs();
     console.log("ending conversation");
-    socket.emit("endConvo");
+    socket.emit("endConvo", convNumber);
   },
   sendMessage: (message) => {
     socket.emit("send", message);

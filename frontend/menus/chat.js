@@ -1,10 +1,11 @@
-let Core, sendErrCb, msgCb, contextCb;
+let Args, Core, sendErrCb, msgCb, contextCb;
 let context = [];
 let generating = false;
 const menu = {
   title: "Loading....",
   contents: (wrapper, Html, core, menu, args) => {
     Core = core;
+    Args = args;
     console.log(args);
     menu.title(args.character.name);
     wrapper.styleJs({
@@ -263,7 +264,7 @@ const menu = {
     console.log("UI killed me!!!");
     document.removeEventListener("characterMessage", msgCb);
     document.removeEventListener("sendError", sendErrCb);
-    Core.endChat();
+    Core.endChat(Args.convNumber);
   },
 };
 
