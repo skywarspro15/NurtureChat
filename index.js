@@ -273,6 +273,7 @@ io.on("connection", (socket) => {
       socket.emit("sendError", "You're not in a conversation yet!");
       return;
     }
+    socket.emit("typing");
     let msgResponse = await socket.conversation.send(msg);
     console.log("msg response");
     console.log(msgResponse);
