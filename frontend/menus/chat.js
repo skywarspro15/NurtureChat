@@ -1,4 +1,4 @@
-let Args, Core, sendErrCb, msgCb, contextCb;
+let Args, Core, sendErrCb, msgCb, contextCb, typingCb;
 let context = [];
 let generating = false;
 const menu = {
@@ -17,12 +17,12 @@ const menu = {
 
     let chat = new Html("div").appendTo(wrapper).styleJs({
       width: "100%",
-      height: "86%",
-      marginTop: "4%",
+      height: "100%",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       overflow: "auto",
+      scrollBehavior: "smooth",
     });
 
     function createDialog(title) {
@@ -58,7 +58,13 @@ const menu = {
       };
     }
 
-    function createBubble(text, you = false, cb) {
+    function createBubble(
+      text,
+      you = false,
+      cb,
+      animation = true,
+      smoothScroll = true
+    ) {
       let styleSettings = {
         background: "var(--md-sys-color-surface-dim)",
         borderRadius: "50px",
@@ -69,6 +75,7 @@ const menu = {
         paddingLeft: "20px",
         paddingRight: "20px",
         maxWidth: "80%",
+        // transform: `${animation ? "translateY(100px)" : "none"}`,
       };
       if (you) {
         styleSettings.marginLeft = "auto";
@@ -82,9 +89,21 @@ const menu = {
         .styleJs(styleSettings);
       new Html("p").text(text).appendTo(bubble).styleJs({
         color: "var(--md-sys-color-inverse-surface)",
+        maxWidth: "100%",
+        wordWrap: "break-word",
       });
       bubble.on("click", cb);
       new Html("br").appendTo(chat);
+      if (animation) {
+        anime({
+          targets: bubble.elm,
+          translateY: [50, 0],
+          duration: 350,
+          easing: "cubicBezier(0.19,1,0.22,1)",
+        });
+      }
+
+      chat.styleJs({ scrollBehavior: `${smoothScroll ? "smooth" : "auto"}` });
       chat.elm.scrollTop = chat.elm.scrollHeight;
     }
 
@@ -158,9 +177,15 @@ const menu = {
             context.splice(msgIndex, 1);
             context.splice(msgIndex - 1, 1);
             await core.updateContext(context);
-            createBubble(lastMessage.content, true, () => {
-              console.log("no cb yet");
-            });
+            createBubble(
+              lastMessage.content,
+              true,
+              () => {
+                console.log("no cb yet");
+              },
+              false,
+              false
+            );
             generating = true;
             core.sendMessage(lastMessage.content);
             methods.close();
@@ -193,13 +218,16 @@ const menu = {
     context = args.messages;
     function renderContext() {
       chat.clear();
+      new Html("br").styleJs({ height: "14%" }).appendTo(chat);
       context.forEach((message) => {
         createBubble(
           message.content,
           message.role == "user" ? true : false,
           () => {
             msgMenu(message);
-          }
+          },
+          false,
+          false
         );
       });
     }
@@ -219,6 +247,10 @@ const menu = {
       createBubble(message, false, () => {
         console.log("no cb yet");
       });
+      setTimeout(() => {
+        chat.styleJs({ scrollBehavior: "smooth" });
+        chat.elm.scrollTop = chat.elm.scrollHeight;
+      }, 450);
     };
 
     sendErrCb = (e) => {
@@ -227,9 +259,16 @@ const menu = {
       alert(`An error occured\n${JSON.stringify(message, null, 2)}`);
     };
 
+    typingCb = () => {
+      createBubble("Generating...", false, () => {
+        console.log("no cb yet");
+      });
+    };
+
     document.addEventListener("characterMessage", msgCb);
     document.addEventListener("sendError", sendErrCb);
     document.addEventListener("context", contextCb);
+    document.addEventListener("typing", typingCb);
 
     let inputContainer = new Html("div").appendTo(wrapper).styleJs({
       width: "100%",
@@ -264,6 +303,8 @@ const menu = {
     console.log("UI killed me!!!");
     document.removeEventListener("characterMessage", msgCb);
     document.removeEventListener("sendError", sendErrCb);
+    document.removeEventListener("context", contextCb);
+    document.removeEventListener("typing", typingCb);
     Core.endChat(Args.convNumber);
   },
 };

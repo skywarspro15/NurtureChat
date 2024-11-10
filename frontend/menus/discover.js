@@ -73,9 +73,15 @@ const menu = {
       new Html("div")
         .class("card-title")
         .text(item.name)
+        .styleJs({
+          color: "var(--md-sys-color-inverse-surface)",
+        })
         .appendTo(cardContents);
       new Html("div")
         .text(item.description ? item.description : "No description provided.")
+        .styleJs({
+          color: "var(--md-sys-color-inverse-surface)",
+        })
         .appendTo(cardContents);
       new Html("div")
         .class("flex")

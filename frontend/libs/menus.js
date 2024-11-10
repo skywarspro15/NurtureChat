@@ -8,25 +8,27 @@ class Menu {
     this.currentPage = null;
   }
   async goto(name, args = {}) {
-    if (this.currentPage) {
-      this.currentPage.end();
-    }
-    this.wrapper.clear();
-    const menuFuncs = {
-      title: (title) => {
-        document.title = title;
-      },
-    };
-    const page = await import(`../menus/${name}.js`);
-    this.currentPage = page.default;
-    document.title = page.default.title;
-    page.default.contents(
-      this.wrapper,
-      this.Html,
-      this.coreFuncs,
-      menuFuncs,
-      args
-    );
+    return new Promise(async (resolve, reject) => {
+      if (this.currentPage) {
+        this.currentPage.end();
+      }
+      this.wrapper.clear();
+      const menuFuncs = {
+        title: (title) => {
+          document.title = title;
+        },
+      };
+      const page = await import(`../menus/${name}.js`);
+      this.currentPage = page.default;
+      document.title = page.default.title;
+      page.default.contents(
+        this.wrapper,
+        this.Html,
+        this.coreFuncs,
+        menuFuncs,
+        args
+      );
+    });
   }
   async popup(name, args = {}) {
     let popupContainer = new Html("div").id("#popupMenu").styleJs({

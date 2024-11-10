@@ -96,10 +96,13 @@ let tabs = [
   },
 ];
 let tabDiv;
+let previousTab = 0;
+let currentTab = 0;
 
 function renderTabs() {
   wrapper.styleJs({
     height: "92%",
+    transitionProperty: "left, opacity",
   });
   let body = Html.qs("body");
   tabDiv = new Html("div")
@@ -132,8 +135,20 @@ function renderTabs() {
         new Html("md-icon").attr({ slot: "inactive-icon" }).text(tab.icon)
       )
       .appendTo(navBar)
-      .on("click", () => {
-        menu.goto(tab.menu);
+      .on("click", async () => {
+        previousTab = currentTab;
+        currentTab = index;
+        wrapper.styleJs({
+          left: `${previousTab < currentTab ? "-50%" : "50%"}`,
+          opacity: "0",
+        });
+        setTimeout(async () => {
+          wrapper.styleJs({
+            left: "0",
+            opacity: "1",
+          });
+          await menu.goto(tab.menu);
+        }, 500);
       });
   });
 }
@@ -242,6 +257,9 @@ const coreFunctions = {
         document.dispatchEvent(
           new CustomEvent("sendError", { detail: message })
         );
+      });
+      socket.on("typing", () => {
+        document.dispatchEvent(new CustomEvent("typing"));
       });
       socket.on("creationError", (msg) => {
         alert(msg);

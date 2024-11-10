@@ -48,6 +48,7 @@ const menu = {
       });
     }
     renderAll();
+    searchField.elm.focus();
     searchField.on("keyup", () => {
       let searchPattern = searchField.elm.value;
       let searchResults = fuse.search(searchPattern);
