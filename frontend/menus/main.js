@@ -5,7 +5,7 @@ const menu = {
     wrapper.styleJs({
       display: "flex",
       flexDirection: "column",
-      opacity: "0",
+      // opacity: "0",
     });
     let container = new Html("div")
       .styleJs({
@@ -100,14 +100,14 @@ const menu = {
       .on("click", () => {
         core.startChat();
       });
-    setTimeout(() => {
-      anime({
-        targets: wrapper.elm,
-        opacity: "1",
-        duration: 500,
-        easing: "cubicBezier(0.19,1,0.22,1)",
-      });
-    }, 100);
+    // setTimeout(() => {
+    //   anime({
+    //     targets: wrapper.elm,
+    //     opacity: "1",
+    //     duration: 500,
+    //     easing: "cubicBezier(0.19,1,0.22,1)",
+    //   });
+    // }, 100);
     core.startSocket();
   },
   end: () => {

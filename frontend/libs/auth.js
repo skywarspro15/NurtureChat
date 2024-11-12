@@ -43,5 +43,17 @@ let Auth = {
       headers: { Authorization: `Bearer ${token}` },
     }).then((response) => response.json());
   },
+  setDisplayName: (token, newName) => {
+    const url = `displayName`;
+    const payload = JSON.stringify({ newName });
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: payload,
+    }).then((response) => response.json());
+  },
 };
 export default Auth;

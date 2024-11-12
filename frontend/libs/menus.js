@@ -28,6 +28,7 @@ class Menu {
         menuFuncs,
         args
       );
+      resolve();
     });
   }
   async popup(name, args = {}) {

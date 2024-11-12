@@ -6,7 +6,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const express = require("express");
 const crypto = require("crypto");
-
+const multer = require("multer");
+const path = require("path");
 const app = express();
 
 const secretKey = crypto.randomBytes(32).toString("hex");
@@ -39,6 +40,12 @@ if (!fs.existsSync("users.json")) {
 fs.stat("conversations/", (err, stats) => {
   if (err || !stats.isDirectory()) {
     fs.mkdirSync("conversations/");
+  }
+});
+
+fs.stat("assets/", (err, stats) => {
+  if (err || !stats.isDirectory()) {
+    fs.mkdirSync("assets/");
   }
 });
 
@@ -109,6 +116,7 @@ const provider = new ai.Provider({
 });
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("frontend"));
 
 function authenticator(req, res, next) {
@@ -188,6 +196,41 @@ app.get("/validate", authenticator, (req, res) => {
 
 app.get("/info", authenticator, (req, res) => {
   res.send(users[req.user.username]["public"]);
+});
+
+app.post("/displayName", authenticator, (req, res) => {
+  let { newName } = req.body;
+  users[req.user.username]["public"].display_name = newName;
+  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+  res.json({ error: false, message: "Display name set" });
+});
+
+app.post(
+  "/profilePicture",
+  [authenticator, multer().single("file")],
+  (req, res) => {
+    console.log(req.file);
+    if (!req.file) {
+      return res.send({ error: true, message: "Please provide an image!" });
+    }
+    let fileName =
+      req.user.username.trim() +
+      "." +
+      path.extname(req.file.originalname).trim();
+
+    fs.writeFileSync(`assets/${fileName}`, req.file.buffer);
+
+    users[req.user.username][
+      "public"
+    ].profile_picture = `profilePicture/${fileName}`;
+    fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+    res.send({ error: false, message: "Profile picture set" });
+  }
+);
+
+app.get("/profilePicture/*", (req, res) => {
+  let userPfp = req.path.split("/").pop();
+  res.sendFile(userPfp, { root: path.join(__dirname, "/assets") });
 });
 
 io.use((socket, next) => {

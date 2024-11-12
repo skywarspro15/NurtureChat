@@ -5,6 +5,8 @@ import "@material/web/navigationtab/navigation-tab.js";
 import { styles as typescaleStyles } from "@material/web/typography/md-typescale-styles.js";
 import { io } from "./libs/socket.io.esm.min.js";
 
+import { snack } from "@material/web/snackbar/snackbar.js";
+
 document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
 let theme = await import("./libs/theming.js");
 theme = theme.default;
@@ -94,6 +96,11 @@ let tabs = [
     icon: "explore",
     menu: "discover",
   },
+  {
+    label: "Profile",
+    icon: "person",
+    menu: "profile",
+  },
 ];
 let tabDiv;
 let previousTab = 0;
@@ -143,11 +150,12 @@ function renderTabs() {
           opacity: "0",
         });
         setTimeout(async () => {
+          await menu.goto(tab.menu);
+          console.log("resolved");
           wrapper.styleJs({
             left: "0",
             opacity: "1",
           });
-          await menu.goto(tab.menu);
         }, 500);
       });
   });
@@ -184,6 +192,144 @@ const coreFunctions = {
       await attemptAuth(fData);
     }
     return result;
+  },
+  getUserInfo: async () => {
+    return await Auth.getInfo(sessionStorage.getItem("sessionToken"));
+  },
+  updateDisplayName: async () => {
+    let finished = false;
+    let dialog = new Html("md-dialog")
+      .attr({ open: true })
+      .appendMany(
+        new Html("div").attr({ slot: "headline" }).text("Set display name")
+      )
+      .on("close", () => {
+        setTimeout(() => {
+          if (!finished) {
+            snack("Action cancelled");
+          }
+          dialog.cleanup();
+        }, 800);
+      })
+      .appendTo(wrapper);
+    let dialogContents = new Html("form")
+      .attr({
+        slot: "content",
+        id: "form-id",
+        method: "dialog",
+      })
+      .appendTo(dialog);
+
+    let input = new Html("md-outlined-text-field")
+      .attr({
+        label: "New display name",
+        required: true,
+      })
+      .styleJs({ width: "100%" })
+      .appendTo(dialogContents);
+
+    new Html("div")
+      .attr({ slot: "actions" })
+      .appendMany(
+        new Html("md-text-button")
+          .attr({ form: "form-id" })
+          .html("Cancel")
+          .on("click", () => {
+            dialog.elm.close();
+          }),
+        new Html("md-text-button")
+          .attr({ form: "form-id" })
+          .html("OK")
+          .on("click", async () => {
+            if (input.elm.value.trim() == "") {
+              input.elm.reportValidity();
+              return;
+            }
+            let result = await Auth.setDisplayName(
+              sessionStorage.getItem("sessionToken"),
+              input.elm.value
+            );
+            if (!result.error) {
+              finished = true;
+              document.dispatchEvent(
+                new CustomEvent("displayNameChange", {
+                  detail: input.elm.value,
+                })
+              );
+              snack("Edited display name successfully");
+              dialog.elm.close();
+            } else {
+              input.elm.setCustomValidity("Something went wrong");
+              input.elm.reportValidity();
+            }
+          })
+      )
+      .appendTo(dialog);
+  },
+  addProfilePic: async () => {
+    let validateFiles = (fileList) => {
+      const allowedTypes = ["image/webp", "image/jpeg", "image/png"];
+      const sizeLimit = 2048 * 1024;
+
+      for (const file of fileList) {
+        const { name: fileName, size: fileSize } = file;
+
+        if (!allowedTypes.includes(file.type)) {
+          throw new Error(`Only images are allowed.`);
+        }
+
+        if (fileSize > sizeLimit) {
+          throw new Error(`The maximum file size is 2MB.`);
+        }
+      }
+    };
+
+    let form = new Html("form").styleJs({ display: "none" }).appendTo(wrapper);
+
+    function uploadFiles() {
+      const url = "profilePicture";
+      const method = "post";
+
+      const xhr = new XMLHttpRequest();
+
+      const data = new FormData(form.elm);
+
+      xhr.addEventListener("loadend", () => {
+        if (xhr.status === 200) {
+          document.dispatchEvent(new CustomEvent("profilePicChange"));
+          snack("Uploaded image successfully");
+        } else {
+          snack("Error uploading image");
+        }
+      });
+
+      xhr.open(method, url);
+      xhr.setRequestHeader(
+        "Authorization",
+        `Bearer ${sessionStorage.getItem("sessionToken")}`
+      );
+      xhr.send(data);
+    }
+
+    let fInput = new Html("input")
+      .attr({
+        name: "file",
+        type: "file",
+        accept: "image/*",
+      })
+      .styleJs({ display: "none" })
+      .appendTo(form);
+
+    fInput.on("change", () => {
+      try {
+        validateFiles(fInput.elm.files);
+      } catch (err) {
+        snack(err.message);
+      }
+      uploadFiles();
+      form.cleanup();
+    });
+    fInput.elm.click();
   },
   startChat: () => {
     hideTabs();
@@ -226,6 +372,7 @@ const coreFunctions = {
       sessionStorage.getItem("sessionToken")
     );
     if (!tokenValid) {
+      snack("Your session has expired.");
       menu.goto("login");
       return;
     }
