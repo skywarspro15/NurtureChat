@@ -3,8 +3,6 @@ let changeCb, pfpCb;
 const menu = {
   title: "NurtureChat - Nurturing Stories",
   contents: async (wrapper, Html, core) => {
-    let info = await core.getUserInfo();
-    console.log(info);
     wrapper.styleJs({
       display: "flex",
       flexDirection: "column",
@@ -40,9 +38,7 @@ const menu = {
 
     let pfp = new Html("img")
       .attr({
-        src: info.profile_picture
-          ? info.profile_picture
-          : "./assets/default.png",
+        src: "./assets/default.png",
       })
       .styleJs({
         width: "50%",
@@ -55,16 +51,16 @@ const menu = {
 
     let displayName = new Html("p")
       .class("md-typescale-headline-medium")
-      .text(info.display_name)
+      .text("Loading...")
       .styleJs({
         marginBottom: 0,
         padding: 0,
       })
       .appendTo(profileContainer);
 
-    new Html("p")
+    let userName = new Html("p")
       .class("md-typescale-headline-small")
-      .text(`@${info.username}`)
+      .text("Loading...")
       .appendTo(profileContainer);
 
     let buttons = new Html("div")
@@ -92,6 +88,15 @@ const menu = {
       });
 
     new Html("br").appendTo(profileContainer);
+
+    let info = await core.getUserInfo();
+    console.log(info);
+
+    userName.text(`@${info.username}`);
+    displayName.text(info.display_name);
+    pfp.attr({
+      src: info.profile_picture ? info.profile_picture : "./assets/default.png",
+    });
 
     changeCb = (e) => {
       displayName.text(e.detail);
