@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs");
 const express = require("express");
 const crypto = require("crypto");
 const multer = require("multer");
+const Fuse = require("fuse.js");
 const path = require("path");
 const app = express();
 
@@ -100,7 +101,7 @@ function makeId(length) {
 const provider = new ai.Provider({
   apiKey: process.env.API_KEY,
   generationConfig: {
-    temperature: 2,
+    temperature: 1,
     topP: 0.95,
     topK: 64,
     maxOutputTokens: 8192,
@@ -301,7 +302,66 @@ io.on("connection", (socket) => {
     if (convoData.belongsTo == socket.handshake.auth.name) {
       socket.conversation = new ai.ChatSession(
         provider,
-        convoData.character.prompt
+        convoData.character.prompt,
+        {
+          declarations: [
+            {
+              name: "getTime",
+              description: "Gets current time of day.",
+              parameters: {
+                type: "object",
+                description: "Gets current time of day.",
+                properties: {
+                  timeZone: {
+                    type: "string",
+                    description:
+                      "Timezone based on the character's location. Check the character prompt for hints of a timezone. If a character is from Japan, for instance, put JST as the timezone. If not, put NONE to let the server return the default timezone.",
+                  },
+                },
+                required: ["timeZone"],
+              },
+            },
+            {
+              name: "whoIs",
+              description:
+                "Use this function when the conversation needs more context about a certain character and their certain relationship. Use this when someone asks about a certain character. You may use this to also temporarily switch roles when neccessary in the roleplay.",
+              parameters: {
+                type: "object",
+                description:
+                  "Use this function when the conversation needs more context about a certain character and their certain relationship. Use this when someone asks about a certain character. You may use this to also temporarily switch roles when neccessary in the roleplay.",
+                properties: {
+                  charName: {
+                    type: "string",
+                    description:
+                      "The name of the character. Make sure that this is an exact match; or you may not find any results.",
+                  },
+                },
+                required: ["charName"],
+              },
+            },
+          ],
+          assignments: {
+            getTime: (args) => {
+              console.log("AI put " + args.timeZone + " as the timezone");
+              return {
+                time: new Date().toLocaleString("en-US", {
+                  timeZone: args.timeZone == "NONE" ? "UTC" : args.timeZone,
+                }),
+              };
+            },
+            whoIs: (args) => {
+              console.log("AI is searching for " + args.charName);
+              let fuseOptions = {
+                keys: ["name"],
+                includeScore: true,
+              };
+              let characters = convoData.character.relationships;
+              const fuse = new Fuse(characters, fuseOptions);
+              let result = fuse.search(args.charName);
+              return { searchResults: result };
+            },
+          },
+        }
       );
       socket.conversation.setContext(convoData.messages);
       socket.conversationId = conversationId;

@@ -107,6 +107,48 @@ const menu = {
       chat.elm.scrollTop = chat.elm.scrollHeight;
     }
 
+    function createFunctionResponse(content, response = true) {
+      let styleSettings = {
+        background: "var(--md-sys-color-surface-dim)",
+        borderRadius: "20px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingLeft: "20px",
+        paddingRight: "20px",
+        marginBottom: "20px",
+        maxWidth: "80%",
+        width: "80%",
+      };
+      let bubbleContainer = new Html("div").appendTo(chat).styleJs({
+        width: "95%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      });
+      let bubble = new Html("div")
+        .appendTo(bubbleContainer)
+        .styleJs(styleSettings);
+      new Html("p")
+        .text(
+          response
+            ? `${args.character.name} ran: ${content.name}`
+            : `${args.character.name} is running ${content.name}`
+        )
+        .styleJs({ fontWeight: "bold", textAlign: "center" })
+        .appendTo(bubble);
+      new Html("pre")
+        .text(
+          JSON.stringify(response ? content.response : content.args, null, 2)
+        )
+        .appendTo(bubble)
+        .styleJs({
+          width: "95%",
+          padding: "20px",
+        });
+    }
+
     let msgMenu = (message) => {
       console.log(message);
       let actionsList = [
@@ -220,15 +262,24 @@ const menu = {
       chat.clear();
       new Html("br").styleJs({ height: "14%" }).appendTo(chat);
       context.forEach((message) => {
-        createBubble(
-          message.content,
-          message.role == "user" ? true : false,
-          () => {
-            msgMenu(message);
-          },
-          false,
-          false
-        );
+        if (message.role != "function") {
+          if (message.content) {
+            createBubble(
+              message.content,
+              message.role == "user" ? true : false,
+              () => {
+                msgMenu(message);
+              },
+              false,
+              false
+            );
+          }
+          if (message.functionCall) {
+            createFunctionResponse(message.functionCall, false);
+          }
+        } else {
+          createFunctionResponse(message.content);
+        }
       });
     }
     renderContext();
@@ -286,7 +337,13 @@ const menu = {
         height: "100%",
       });
     new Html("md-icon-button")
-      .styleJs({ width: "15%", height: "100%", padding: "0", margin: "0" })
+      .styleJs({
+        width: "15%",
+        height: "100%",
+        padding: "0",
+        margin: "0",
+        borderRadius: "0",
+      })
       .append(new Html("md-icon").text("send"))
       .appendTo(inputContainer)
       .on("click", () => {
