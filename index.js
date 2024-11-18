@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const { createServer } = require("http");
 const { Server } = require("socket.io");
+const FuzzySet = require("fuzzyset");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const express = require("express");
@@ -21,6 +22,7 @@ const io = new Server(server, {
 });
 
 const ai = require("./providers/gemini");
+let fuzzySearch = FuzzySet();
 
 const fs = require("fs");
 let characters = {};
@@ -59,13 +61,16 @@ for (const username of userArr) {
   console.log(`[SERVER] Checking user ${username}`);
   let userConvos = users[username].conversations;
   userConvos.forEach((conversation, index) => {
-    if (!conversation.hasOwnProperty("lastMessage")) {
-      let convoData = JSON.parse(
-        fs.readFileSync(`conversations/${conversation.conversationId}.json`)
-      );
-
+    let convoData = JSON.parse(
+      fs.readFileSync(`conversations/${conversation.conversationId}.json`)
+    );
+    if (
+      !conversation.hasOwnProperty("lastMessage") ||
+      !("groupChat" in convoData)
+    ) {
       convoData.belongsTo = username;
       convoData.convNumber = index;
+      convoData.groupChat = false;
 
       fs.writeFileSync(
         `conversations/${conversation.conversationId}.json`,
@@ -119,6 +124,77 @@ const provider = new ai.Provider({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("frontend"));
+
+async function getPersonalities(text, characters) {
+  return new Promise(async (resolve, reject) => {
+    let charsString = "";
+    let first = true;
+    characters.forEach((character) => {
+      try {
+        fuzzySearch.add(character.name);
+        if (first) {
+          charsString = charsString + character.name;
+          first = false;
+        } else {
+          charsString = charsString + ", " + character.name;
+        }
+      } catch (e) {
+        reject(e);
+      }
+    });
+
+    // Personality finder starts
+    let chat = new ai.ChatSession(
+      provider,
+      "You're going to roleplay as characters in a game. Please be guided by running the getPersonality function, and by inputting the player's message and what you think the player is talking to.",
+      {
+        declarations: [
+          {
+            name: "getPersonality",
+            description: "Get character personality based on input",
+            parameters: {
+              type: "object",
+              description: "Get character personality based on input",
+              properties: {
+                toWho: {
+                  type: "array",
+                  description:
+                    "Who to get personality from (" +
+                    charsString +
+                    "). As this is an array, you can put multiple characters. Input an empty array when unsure.",
+                  items: {
+                    type: "string",
+                    description: "The name of the character added",
+                  },
+                },
+                inputMessage: {
+                  type: "string",
+                  description: "The message inputted by the user",
+                },
+              },
+              required: ["toWho", "inputMessage"],
+            },
+          },
+        ],
+        assignments: {
+          getPersonality: (data) => {
+            resolve(data);
+            return { error: false };
+          },
+        },
+      },
+      true
+    );
+    chat.setContext([]);
+    let msgResponse = await chat.send(
+      `Who's being called in this message? Use the getPersonality function to respond: ${text}`
+    );
+    if (msgResponse.error) {
+      console.error(msgResponse.message);
+      reject(msgResponse.message);
+    }
+  });
+}
 
 function authenticator(req, res, next) {
   const token =
@@ -276,6 +352,7 @@ io.on("connection", (socket) => {
       convNumber: users[userName].conversations.length,
       character: characters[characterId],
       started: new Date().toISOString(),
+      groupChat: false,
       messages: [],
     };
     fs.writeFileSync(
@@ -294,6 +371,58 @@ io.on("connection", (socket) => {
     );
     socket.emit("creationSuccess", convId);
   });
+  socket.on("createGroupConversation", (data) => {
+    let charactersInChat = [];
+    let userName = socket.handshake.auth.name;
+    let convId = `${makeId(5)}-${makeId(5)}-${makeId(5)}`;
+    data.forEach((dataInt) => {
+      let characterId = parseInt(dataInt);
+      console.log(characterId);
+      console.log(characters[characterId]);
+      if (characterId < 0 || characterId > characters.length - 1) {
+        socket.emit(
+          "creationError",
+          `Character ID "${characterId}"out of bounds`
+        );
+        return;
+      }
+      charactersInChat.push(characters[characterId]);
+    });
+    let conversationData = {
+      belongsTo: userName,
+      convNumber: users[userName].conversations.length,
+      characters: charactersInChat,
+      started: new Date().toISOString(),
+      groupChat: true,
+      messages: [],
+    };
+    fs.writeFileSync(
+      `conversations/${convId}.json`,
+      JSON.stringify(conversationData, null, 2)
+    );
+
+    let charsString = "";
+    let first = true;
+    charactersInChat.forEach((character) => {
+      if (first) {
+        charsString = charsString + character.name;
+        first = false;
+      } else {
+        charsString = charsString + ", " + character.name;
+      }
+    });
+    users[userName].conversations.push({
+      name: charsString,
+      conversationId: convId,
+      lastMessage: "This conversation is empty.",
+    });
+    fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
+    socket.emit(
+      "conversations",
+      users[socket.handshake.auth.name].conversations
+    );
+    socket.emit("creationSuccess", convId);
+  });
   socket.on("joinConversation", (conversationId) => {
     let convoData = JSON.parse(
       fs.readFileSync(`conversations/${conversationId}.json`)
@@ -302,7 +431,7 @@ io.on("connection", (socket) => {
     if (convoData.belongsTo == socket.handshake.auth.name) {
       socket.conversation = new ai.ChatSession(
         provider,
-        convoData.character.prompt,
+        convoData.groupChat ? "" : convoData.character.prompt,
         {
           declarations: [
             {
@@ -355,6 +484,9 @@ io.on("connection", (socket) => {
                 keys: ["name"],
                 includeScore: true,
               };
+              if (!("relationships" in convoData.character)) {
+                return { searchResults: [] };
+              }
               let characters = convoData.character.relationships;
               const fuse = new Fuse(characters, fuseOptions);
               let result = fuse.search(args.charName);
@@ -374,6 +506,58 @@ io.on("connection", (socket) => {
     );
     if (!socket.conversation) {
       socket.emit("sendError", "You're not in a conversation yet!");
+      return;
+    }
+    if (convoData.groupChat) {
+      let characters = convoData.characters;
+      let personalities = await getPersonalities(msg, convoData.characters);
+      let talkingTo;
+
+      if ("toWho" in personalities && personalities.toWho.length > 0) {
+        talkingTo = personalities.toWho;
+        convoData.talkingTo = personalities.toWho;
+      } else if (convoData.talkingTo) {
+        talkingTo = convoData.talkingTo;
+      } else {
+        talkingTo = [
+          characters[Math.floor(Math.random() * characters.length)].name,
+        ];
+        convoData.talkingTo = talkingTo;
+      }
+
+      for (const charName of talkingTo) {
+        let selectedCharacter = characters.find(
+          (character) => character.name === charName
+        );
+        if (selectedCharacter) {
+          socket.emit("typing", { characterName: selectedCharacter.name });
+          let adjustedSearch = fuzzySearch.get(selectedCharacter.name)[0][1];
+          if (adjustedSearch == selectedCharacter.name) {
+            let prompt = `${selectedCharacter.prompt}\n\nFormat your message like this:\n${selectedCharacter.name}: <your message>`;
+            socket.conversation.changeModelConfig({
+              systemInstruction: prompt,
+            });
+            let msgResponse = await socket.conversation.send(msg);
+            if (msgResponse.error) {
+              socket.conversation.setContext(convoData.messages);
+              socket.emit("sendError", msgResponse.message);
+              return;
+            }
+            let curContext = structuredClone(socket.conversation.getContext());
+            let popped = curContext.pop();
+            popped.character = selectedCharacter.name;
+            curContext.push(popped);
+            socket.conversation.setContext(curContext);
+            convoData.messages = curContext;
+            fs.writeFileSync(
+              `conversations/${socket.conversationId}.json`,
+              JSON.stringify(convoData, null, 2)
+            );
+            socket.emit("msg", msgResponse.message);
+            socket.emit("contextUpdate", curContext);
+          }
+        }
+      }
       return;
     }
     socket.emit("typing");

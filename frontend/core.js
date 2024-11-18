@@ -335,11 +335,18 @@ const coreFunctions = {
     hideTabs();
     menu.popup("newChat");
   },
+  startGroupChat: () => {
+    hideTabs();
+    menu.popup("newGroupChat");
+  },
   openChat: (id) => {
     socket.emit("joinConversation", id);
   },
   createChat: (charId) => {
     socket.emit("createConversation", charId);
+  },
+  createGroupChat: (chars) => {
+    socket.emit("createGroupConversation", chars);
   },
   endChat: (convNumber) => {
     showTabs();
@@ -405,7 +412,11 @@ const coreFunctions = {
           new CustomEvent("sendError", { detail: message })
         );
       });
-      socket.on("typing", () => {
+      socket.on("typing", (data) => {
+        if (data) {
+          document.dispatchEvent(new CustomEvent("typing", { detail: data }));
+          return;
+        }
         document.dispatchEvent(new CustomEvent("typing"));
       });
       socket.on("creationError", (msg) => {
@@ -417,7 +428,7 @@ const coreFunctions = {
       });
       socket.on("conversationData", (convData) => {
         hideTabs();
-        menu.popup("chat", convData);
+        menu.popup(convData.groupChat ? "groupChat" : "chat", convData);
       });
       socket.on("contextUpdate", (context) => {
         document.dispatchEvent(new CustomEvent("context", { detail: context }));

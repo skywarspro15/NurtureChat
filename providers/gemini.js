@@ -23,7 +23,7 @@ class Provider {
 }
 
 class ChatSession {
-  constructor(data, instructions = "", functions) {
+  constructor(data, instructions = "", functions, anyMode = false) {
     let safetySettings = [];
     this.functions = null;
     if (functions) {
@@ -41,39 +41,63 @@ class ChatSession {
     }
     this.genAI = new GoogleGenerativeAI(data.apiKey);
     let model = "gemini-1.5-flash";
-    let modelConfig = {
+    this.modelConfig = {
       model: model,
-      systemInstruction:
-        instructions +
-        "\n\n" +
-        "ALWAYS RUN the 'whoIs' function when you introduce a character. Do this when the user asks about a certain character. Act as if you know the character when using this function. Always use this function when the user is asking to switch perspectives to another character. For example, when calling the character a name other than them.",
+      systemInstruction: instructions,
       safetySettings: safetySettings,
       apiVersion: "v1beta",
     };
+    this.generationConfig = data.generationConfig;
     if (this.functions) {
-      modelConfig["tools"] = {
+      this.modelConfig["tools"] = {
         functionDeclarations: this.functions.declarations,
       };
+      console.log(this.functions.declarations[0].parameters.properties);
+      if (anyMode) {
+        this.modelConfig["toolConfig"] = {
+          functionCallingConfig: { mode: "ANY" },
+        };
+      }
     }
-    console.log(modelConfig);
-    this.model = this.genAI.getGenerativeModel(modelConfig);
+    console.log(this.modelConfig);
+    this.model = this.genAI.getGenerativeModel(this.modelConfig);
     this.session = this.model.startChat({
-      generationConfig: data.generationConfig,
+      generationConfig: this.generationConfig,
       history: [],
     });
   }
 
-  changeConfig(newConfig) {
+  changeGenerationConfig(newConfig) {
     let currentHistory = this.session._history.map((a) => ({ ...a }));
+    this.generationConfig = newConfig;
     this.session = this.model.startChat({
-      generationConfig: newConfig,
+      generationConfig: this.generationConfig,
       history: currentHistory,
     });
+    console.log("[PROVIDER] Changed generation config!");
+  }
+
+  changeModelConfig(newConfig) {
+    let currentHistory = this.session._history.map((a) => ({ ...a }));
+    let keys2Override = Object.keys(newConfig);
+    keys2Override.forEach((key) => {
+      console.log(`[PROVIDER] Overwritten "${key}" in model config`);
+      console.log(`[PROVIDER] New value:`);
+      console.log(newConfig[key]);
+      this.modelConfig[key] = newConfig[key];
+    });
+    this.model = this.genAI.getGenerativeModel(this.modelConfig);
+    this.session = this.model.startChat({
+      generationConfig: this.generationConfig,
+      history: currentHistory,
+    });
+    console.log("[PROVIDER] Changed model config!");
   }
 
   async send(message) {
     try {
       let result = await this.session.sendMessage(message);
+      console.log(result);
       let call = result.response.functionCalls()
         ? result.response.functionCalls()[0]
         : undefined;
