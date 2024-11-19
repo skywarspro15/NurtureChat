@@ -192,6 +192,8 @@ async function getPersonalities(text, characters) {
     if (msgResponse.error) {
       console.error(msgResponse.message);
       reject(msgResponse.message);
+    } else {
+      resolve({ toWho: [], inputMessage: text });
     }
   });
 }
