@@ -325,6 +325,7 @@ const coreFunctions = {
         validateFiles(fInput.elm.files);
       } catch (err) {
         snack(err.message);
+        return;
       }
       uploadFiles();
       form.cleanup();
